@@ -1,4 +1,4 @@
-module ModJupe (newModJupe) where
+module ModJupe (newModJupe, jupe, squit) where
 
 import JupeCore
 import Config (server)
@@ -26,9 +26,15 @@ connect (IRCLine (Just src) (_:target:_:srv:[])) = do
 		 then const $ putline $ IRCLine (Just server)
 			 ["NOTICE", src, "Only " ++ server ++ " can jupe"]
 		 else id
-	  ok = do
-	      putline $ IRCLine (Just server)
-		  ["SERVER", target, "2", "Juped by " ++ src]
-	      putline $ IRCLine (Just server)
-		  ["WALLOPS", target ++ " juped by " ++ src]
+	  ok = jupe target src ""
 connect _ = return ()
+
+jupe srv src reason = do
+    putline $ IRCLine (Just server)
+	["SERVER", srv, "2", "Juped by " ++ src ++ "; " ++ reason]
+    putline $ IRCLine (Just server)
+	["WALLOPS", srv ++ " juped by " ++ src ++ "; " ++ reason]
+
+squit srv src reason = do
+    putline $ IRCLine (Just server)
+	["SQUIT", srv, "Juped by " ++ src ++ "; " ++ reason]

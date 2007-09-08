@@ -27,11 +27,11 @@ showIRCLine (IRCLine src vars) =
 		    Just s  -> [ ':':s ]
 
 -- | Strip line ending whitespace.
-strip (x:xs) | lineend x = case strip xs of
+strip f (x:xs) | f x = case strip f xs of
 				[]  -> []
 				xs' -> x:xs'
-	     | otherwise = x : strip xs
-strip [] = []
+	     | otherwise = x : strip f xs
+strip f [] = []
 
 -- | Line ending char?
 lineend '\n' = True
@@ -41,3 +41,10 @@ lineend _    = False
 -- | End of stats report.
 endOfStats dest src st = IRCLine (Just dest)
     ["219", src, st, "End of /STATS report"]
+
+-- | Split by a given delimiter.
+splitBy :: Char -> String -> [String]
+splitBy c "" = []
+splitBy c s  = let (l,s') = break (c==) s
+               in l : case s' of []      -> []
+                                 (_:s'') -> splitBy c s''

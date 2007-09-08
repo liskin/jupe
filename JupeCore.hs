@@ -53,7 +53,7 @@ allmodsJM = (asks modules >>=) . mapM_ . modap
 -- Get one line.
 getline :: JupeM IRCLine
 getline = do
-    l <- asks socket >>= io . (strip `fmap`) . hGetLine
+    l <- asks socket >>= io . (strip lineend `fmap`) . hGetLine
     (io $ putStr "<--- ") >> (io $ print l)
     return $ parseIRCLine l
 
