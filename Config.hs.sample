@@ -1,0 +1,8 @@
+module Config where
+
+host = "ip/host"
+port = 6667
+
+server = "server name"
+serverpass = "server pass"
+remote = "uplink server name"
