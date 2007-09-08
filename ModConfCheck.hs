@@ -1,7 +1,7 @@
 module ModConfCheck (newModConfCheck) where
 
 import JupeCore
-import Config (server, remote)
+import Config (server, remote, jupenick)
 import IRC (strip, splitBy)
 import Char
 import Text.Regex.Posix
@@ -23,8 +23,8 @@ data ModConfCheck = ModConfCheck {
 }
 instance Module ModConfCheck where
     mod_init _ = do
-	putline $ IRCLine (Just server) ["NICK", "JupeServ", "1", "1",
-	    "+aiow", "JupeServ", "127.0.0.1", server, "i'm shadow"]
+	putline $ IRCLine (Just server) ["NICK", jupenick, "1", "1",
+	    "+aiow", jupenick, "127.0.0.1", server, "i'm shadow"]
     mod_input i@(IRCLine _ (cmd:_)) m =
 	case cmd of
 	     "SERVER" -> server_ i m
@@ -57,10 +57,10 @@ shouldCheck srv = (srv /= remote) -- && (srv == "chw.fear.cz")
 
 -- | Initiate check.
 startCheck srv m = do
-    putline $ IRCLine (Just "JupeServ") ["ADMIN", srv]
-    putline $ IRCLine (Just "JupeServ") ["VERSION", srv]
-    putline $ IRCLine (Just "JupeServ") ["STATS", "U", srv]
-    putline $ IRCLine (Just "JupeServ") ["INFO", srv]
+    putline $ IRCLine (Just jupenick) ["ADMIN", srv]
+    putline $ IRCLine (Just jupenick) ["VERSION", srv]
+    putline $ IRCLine (Just jupenick) ["STATS", "U", srv]
+    putline $ IRCLine (Just jupenick) ["INFO", srv]
     io $ conf m `modifyIORef` Map.alter (const $ Just newServer) srv
 
 -- | Parse info line.
@@ -120,8 +120,9 @@ check srv =
 	      case lookup var config_settings of
 		   Just (val', crit) -> if val /= val'
 		       then [ ("Konf. volba " ++ var ++ " je spatne; ma byt: "
-			      ++ val', crit) ]
+			      ++ val'', crit) ]
 		       else []
+		       where val'' = if val' == "NONE" then "<prazdne>" else val'
 		   Nothing -> []
 
 -- | Run the check and send email.
@@ -131,15 +132,21 @@ runCheck name srv = case check srv of
 	let crit = not (null (filter ((/=0).snd) xs))
 	io $ mail "irc-jupe@tomi.nomi.cz" (srv_admins srv) ["irc@tomi.nomi.cz"] []
 	    ("Chyba v nastaveni IRC serveru " ++ name)
-	    ([ "Ahoj,", "", "bylo zjisteno, ze nastaveni serveru " ++ name ++
-	        " ma tyto nedostatky:", ""] ++ map fst xs ++ [""] ++
-		(if not crit then [] else
-		    ["Nektere z nich jsou vyzadovany, a proto byl server odpojen."])
+	    ([
+		"Ahoj,",
+		"",
+		"bylo zjisteno, ze nastaveni serveru " ++ name ++
+		    " ma tyto nedostatky:", ""
+	     ] ++
+	     map (("    "++) . fst) xs ++
+	     [""] ++
+	     (if not crit then [] else ["Nektere z nich jsou vyzadovany, a proto byl server odpojen.",""]) ++
+	     ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"]
 	    )
 	if crit
 	   then do
-	       squit name "JupeServ" "critical configuration problem"
-	       jupe name "JupeServ" "critical configuration problem"
+	       squit name jupenick "critical configuration problem"
+	       jupe name jupenick "critical configuration problem"
 	   else return ()
 
 config_settings = [

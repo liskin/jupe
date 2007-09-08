@@ -6,3 +6,5 @@ port = 6667
 server = "server name"
 serverpass = "server pass"
 remote = "uplink server name"
+
+jupenick = "JupeServ"
