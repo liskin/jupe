@@ -49,11 +49,8 @@ srv_admins_add y@(Server { srv_admins = x }) z = y { srv_admins = z : x }
 srv_shared_ok_set y _ = y { srv_shared_ok = True }
 
 -- | Server.
-server_ (IRCLine _ (_:srv:_)) m | shouldCheck srv = startCheck srv m
+server_ (IRCLine _ (_:srv:_)) m = startCheck srv m
 server_ _ _ = return ()
-
--- | Server filter.
-shouldCheck srv = (srv /= remote) -- && (srv == "chw.fear.cz")
 
 -- | Initiate check.
 startCheck srv m = do
@@ -114,7 +111,7 @@ save m srv f v =
 check srv =
     cShared ++ concatMap cSetting (srv_config srv)
     where cShared = if not (srv_shared_ok srv)
-		       then [ ("Spatne nastaveny blok shared {}", 0) ] -- 1
+		       then [ ("Spatne nastaveny blok shared {}", 1) ]
 		       else []
 	  cSetting (var, val) =
 	      case lookup var config_settings of
@@ -143,20 +140,20 @@ runCheck name srv = case check srv of
 	     (if not crit then [] else ["Nektere z nich jsou vyzadovany, a proto byl server odpojen.",""]) ++
 	     ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"]
 	    )
-	if crit
+	if crit && name /= remote
 	   then do
 	       squit name jupenick "critical configuration problem"
 	       jupe name jupenick "critical configuration problem"
 	   else return ()
 
 config_settings = [
-	("NICKLEN",			("20",		0)), -- 1
-	("CHANNELLEN",			("50",		0)), -- 1
+	("NICKLEN",			("20",		1)),
+	("CHANNELLEN",			("50",		1)),
 	("TOPICLEN",			("390",		0)),
-	("ts_max_delta",		("300",		0)), -- 1
+	("ts_max_delta",		("300",		1)),
 	("network_name",		("CZFree",	0)),
-	("max_chans_per_user",		("50",		0)),
-	("max_bans",			("42",		0)),
+	("max_chans_per_user",		("50",		1)),
+	("max_bans",			("42",		1)),
 	("kline_reason",		("NONE",	0)),
 	("min_nonwildcard",		("2",		0)),
 	("min_nonwildcard_simple",	("2",		0))
