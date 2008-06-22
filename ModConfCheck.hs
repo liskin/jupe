@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternSignatures #-}
-
 module ModConfCheck (newModConfCheck) where
 
 import JupeCore
