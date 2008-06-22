@@ -1,7 +1,9 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
 module JupeCore (
     module JupeCore,
     IRCLine(..),
-    module Control.Monad.Reader
     ) where
 
 import Control.Monad.Reader

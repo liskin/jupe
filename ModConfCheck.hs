@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternSignatures #-}
+
 module ModConfCheck (newModConfCheck) where
 
 import JupeCore
@@ -79,7 +81,7 @@ iSupport _ _ = return ()
 -- | Admin.
 adminLine (IRCLine (Just srv) (_:_:l:[])) m = do
     let admins = l =~ "<[[:alnum:].]+@[[:alnum:].]+>|^[[:alnum:].]+@[[:alnum:].]+$"
-    mapM_ (save m srv srv_admins_add) admins
+    mapM_ (save m srv srv_admins_add) (map head admins)
 adminLine _ _ = return ()
 
 -- | shared.

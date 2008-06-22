@@ -1,3 +1,5 @@
+module Main where
+
 import JupeCore
 import System.IO
 import Network
