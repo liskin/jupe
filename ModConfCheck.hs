@@ -10,6 +10,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Mail
 import ModJupe (jupe, squit)
+import Data.Time.Clock.POSIX
+import System.IO.Unsafe
 
 newModConfCheck :: IO ModConfCheck
 newModConfCheck = do
@@ -35,17 +37,20 @@ instance Module ModConfCheck where
 	     "258" -> adminLine i m
 	     "259" -> adminLine i m
 	     "248" -> sharedStats i m
+	     "215" -> authLine i m
 	     _ -> return ()
 
 data Server = Server {
     srv_config :: [(String, String)],
     srv_admins :: [String],
+    srv_ilines :: [[String]],
     srv_shared_ok :: Bool
 } deriving Show
 
-newServer = Server [] [] False
+newServer = Server [] [] [] False
 srv_config_add y@(Server { srv_config = x }) z = y { srv_config = z : x }
 srv_admins_add y@(Server { srv_admins = x }) z = y { srv_admins = z : x }
+srv_ilines_add y@(Server { srv_ilines = x }) z = y { srv_ilines = z : x }
 srv_shared_ok_set y _ = y { srv_shared_ok = True }
 
 -- | Server.
@@ -57,6 +62,7 @@ startCheck srv m = do
     putline $ IRCLine (Just jupenick) ["ADMIN", srv]
     putline $ IRCLine (Just jupenick) ["VERSION", srv]
     putline $ IRCLine (Just jupenick) ["STATS", "U", srv]
+    putline $ IRCLine (Just jupenick) ["STATS", "i", srv]
     putline $ IRCLine (Just jupenick) ["INFO", srv]
     io $ conf m `modifyIORef` Map.alter (const $ Just newServer) srv
 
@@ -89,6 +95,11 @@ sharedStats (IRCLine (Just srv) (_:_:"U":"*":mask:_)) m =
        else return ()
 sharedStats _ _ = return ()
 
+-- | ilines.
+authLine (IRCLine (Just srv) (_:_:"I":l)) m =
+    save m srv srv_ilines_add l
+authLine _ _ = return ()
+
 -- | End of info.
 endOfInfo (IRCLine (Just srv) _) m = do
     conf' <- io $ readIORef $ conf m
@@ -109,9 +120,9 @@ save m srv f v =
 
 -- | Run all the checks.
 check srv =
-    cShared ++ concatMap cSetting (srv_config srv)
+    cShared ++ concatMap cAuth (srv_ilines srv) ++ concatMap cSetting (srv_config srv)
     where cShared = if not (srv_shared_ok srv)
-		       then [ ("Spatne nastaveny blok shared {}", 1) ]
+		       then [ ("Spatne nastaveny blok shared {}", sharedcrit) ]
 		       else []
 	  cSetting (var, val) =
 	      case lookup var config_settings of
@@ -121,12 +132,16 @@ check srv =
 		       else []
 		       where val'' = if val' == "NONE" then "<prazdne>" else val'
 		   Nothing -> []
+	  cAuth l =
+	      case lookup l banned_ilines of
+		   Just crit -> [ ("ILine \"" ++ unwords l ++ "\" je zakazana", crit) ]
+		   Nothing -> []
 
 -- | Run the check and send email.
 runCheck name srv = case check srv of
     [] -> return ()
     xs -> do
-	let crit = not (null (filter ((/=0).snd) xs))
+	critical <- or `fmap` mapM (io . crit . snd) xs
 	io $ mail "irc-jupe@tomi.nomi.cz" (srv_admins srv) ["irc@tomi.nomi.cz"] []
 	    ("Chyba v nastaveni IRC serveru " ++ name)
 	    ([
@@ -137,24 +152,47 @@ runCheck name srv = case check srv of
 	     ] ++
 	     map (("    "++) . fst) xs ++
 	     [""] ++
-	     (if not crit then [] else ["Nektere z nich jsou vyzadovany, a proto byl server odpojen.",""]) ++
-	     ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"]
+	     (if not critical then [] else ["Nektere z nich jsou zavazne, a proto byl server odpojen.",""]) ++
+	     ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"
+	     ,"Neridte se prosim jen temito pokyny, u nastaveni serveru premyslejte."
+	     ,"Nedari-li se vam to, najdete si za sebe nahradu."
+	     ,""
+	     ,"Dekujeme, sprava IRC site."]
 	    )
-	if crit && name /= remote
+	if critical && name /= remote
 	   then do
 	       squit name jupenick "critical configuration problem"
 	       jupe name jupenick "critical configuration problem"
 	   else return ()
 
+type Crit = (Bool, POSIXTime)
+
+crit :: Crit -> IO Bool
+crit (True, t) = do
+    now <- getPOSIXTime
+    return $ now > t
+crit _ = return False
+
+sharedcrit :: Crit
+sharedcrit = (True, 1191147064)
+
+config_settings :: [(String, (String, Crit))]
 config_settings = [
-	("NICKLEN",			("20",		1)),
-	("CHANNELLEN",			("50",		1)),
-	("TOPICLEN",			("390",		0)),
-	("ts_max_delta",		("300",		1)),
-	("network_name",		("CZFree",	0)),
-	("max_chans_per_user",		("50",		1)),
-	("max_bans",			("42",		1)),
-	("kline_reason",		("NONE",	0)),
-	("min_nonwildcard",		("2",		0)),
-	("min_nonwildcard_simple",	("2",		0))
+	("NICKLEN",			("20",		(True,	1191147064))),
+	("CHANNELLEN",			("50",		(True,	1191147064))),
+	("TOPICLEN",			("390",		(False,	0))),
+	("ts_max_delta",		("300",		(True,	1191147064))),
+	("network_name",		("CZFree",	(False,	0))),
+	("max_chans_per_user",		("50",		(True,	1191147064))),
+	("max_bans",			("42",		(True,	1191147064))),
+	("kline_reason",		("NONE",	(False,	0))),
+	("min_nonwildcard",		("2",		(False,	0))),
+	("min_nonwildcard_simple",	("2",		(False,	0)))
+    ]
+
+banned_ilines :: [([String], Crit)]
+banned_ilines =
+    [ (["irc.fi", "*", "*@*.fi", "6667", "users"],	(True,	1218633298))
+    , (["NOMATCH", "*", "*@0.0.0.0/0", "0", "opers"],	(True,	1218633298))
+    , (["NOMATCH", "*", "*@*", "0", "opers"],		(True,	1218633298))
     ]
