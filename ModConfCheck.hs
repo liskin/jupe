@@ -3,7 +3,7 @@ module ModConfCheck (newModConfCheck) where
 import JupeCore
 import Config (server, remote, jupenick)
 import IRC (strip, splitBy)
-import Char
+import Data.Char
 import Text.Regex.Posix
 import Data.IORef
 import Data.Map (Map)

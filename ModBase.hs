@@ -1,7 +1,7 @@
 module ModBase (newModBase) where
 
 import JupeCore
-import Maybe
+import Data.Maybe
 import IRC (endOfStats)
 import Config (server, serverpass, remote)
 

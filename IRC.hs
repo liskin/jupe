@@ -2,7 +2,7 @@ module IRC where
 
 import System.IO
 import Data.List
-import Char
+import Data.Char
 
 data IRCLine = IRCLine (Maybe String) [String]
     deriving Show
