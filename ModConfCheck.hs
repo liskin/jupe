@@ -32,6 +32,7 @@ instance Module ModConfCheck where
     mod_input i@(IRCLine _ (cmd:_)) m =
         case cmd of
              "SERVER" -> server_ i m
+             "SID" -> server_ i m
              "371" -> infoLine i m
              "105" -> iSupport i m
              "374" -> endOfInfo i m

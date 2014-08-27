@@ -1,7 +1,7 @@
 module ModJupe (newModJupe, jupe, squit) where
 
 import JupeCore
-import Config (server)
+import Config (server, serversid)
 
 newModJupe :: IO ModJupe
 newModJupe = return ModJupe
@@ -22,7 +22,7 @@ connect (IRCLine (Just src) (_:target:_:srv:[])) = do
                          ["NOTICE", src, "Jupe cannot contain wildcards"]
                  else id
           check2 =
-              if srv /= server
+              if srv /= server && srv /= serversid
                  then const $ putline $ IRCLine (Just server)
                          ["NOTICE", src, "Only " ++ server ++ " can jupe"]
                  else id

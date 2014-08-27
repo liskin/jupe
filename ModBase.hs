@@ -3,7 +3,7 @@ module ModBase (newModBase) where
 import JupeCore
 import Data.Maybe
 import IRC (endOfStats)
-import Config (server, serverpass, remote)
+import Config (server, serverpass, serversid, remote)
 
 newModBase :: IO ModBase
 newModBase = return ModBase
@@ -11,7 +11,7 @@ newModBase = return ModBase
 data ModBase = ModBase
 instance Module ModBase where
     mod_init _ = do
-        putline $ IRCLine Nothing ["PASS", serverpass, "TS"]
+        putline $ IRCLine Nothing ["PASS", serverpass, "TS", "6", serversid]
         putline $ IRCLine Nothing ["SERVER", server, "1", "Jupe server"]
 
     mod_input i@(IRCLine _ (cmd:_)) _ =
@@ -25,7 +25,8 @@ ping (IRCLine src (_:argv)) = do
     let dest = case argv of
                     (_:d:_) -> d
                     _       -> server
-    putline $ IRCLine (Just dest) (["PONG", dest] ++ maybeToList src)
+        destp = if dest == serversid then server else dest
+    putline $ IRCLine (Just dest) (["PONG", destp] ++ maybeToList src)
 ping _ = return ()
 
 -- | Stats.
