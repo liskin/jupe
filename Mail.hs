@@ -7,7 +7,7 @@ import Data.List
 sendmail :: [String] -> IO ()
 sendmail l = do
     (inp,out,err,pid) <- runInteractiveProcess "/usr/sbin/sendmail"
-	["-oem", "-oi", "-t"] Nothing Nothing
+        ["-oem", "-oi", "-t"] Nothing Nothing
     hClose out
     hClose err
     mapM_ (hPutStrLn inp) l

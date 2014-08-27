@@ -14,23 +14,23 @@ parseIRCLine l = case l of
     (':':xs) -> let (src:rest) = ircWords xs in IRCLine (Just src) rest
     xs       -> IRCLine Nothing (ircWords xs)
     where ircWords s = case dropWhile isSpace s of
-			    ""       -> []
-			    (':':s') -> s' : []
-			    s'       -> w : ircWords s''
-				        where (w,s'') = break isSpace s'
+                            ""       -> []
+                            (':':s') -> s' : []
+                            s'       -> w : ircWords s''
+                                        where (w,s'') = break isSpace s'
 
 -- | Make String from an IRC input line.
 showIRCLine (IRCLine src vars) =
     concat $ intersperse [' '] (src' ++ init vars ++ [':':last vars])
     where src' = case src of
-		    Nothing -> []
-		    Just s  -> [ ':':s ]
+                    Nothing -> []
+                    Just s  -> [ ':':s ]
 
 -- | Strip line ending whitespace.
 strip f (x:xs) | f x = case strip f xs of
-				[]  -> []
-				xs' -> x:xs'
-	     | otherwise = x : strip f xs
+                                []  -> []
+                                xs' -> x:xs'
+             | otherwise = x : strip f xs
 strip f [] = []
 
 -- | Line ending char?

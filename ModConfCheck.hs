@@ -19,7 +19,7 @@ newModConfCheck :: IO ModConfCheck
 newModConfCheck = do
     conf <- newIORef Map.empty
     return ModConfCheck {
-	conf = conf
+        conf = conf
     }
 
 data ModConfCheck = ModConfCheck {
@@ -27,20 +27,20 @@ data ModConfCheck = ModConfCheck {
 }
 instance Module ModConfCheck where
     mod_init _ = do
-	putline $ IRCLine (Just server) ["NICK", jupenick, "1", "1",
-	    "+aiow", jupenick, "127.0.0.1", server, "i'm shadow"]
+        putline $ IRCLine (Just server) ["NICK", jupenick, "1", "1",
+            "+aiow", jupenick, "127.0.0.1", server, "i'm shadow"]
     mod_input i@(IRCLine _ (cmd:_)) m =
-	case cmd of
-	     "SERVER" -> server_ i m
-	     "371" -> infoLine i m
-	     "105" -> iSupport i m
-	     "374" -> endOfInfo i m
-	     "257" -> adminLine i m
-	     "258" -> adminLine i m
-	     "259" -> adminLine i m
-	     "248" -> sharedStats i m
-	     "215" -> authLine i m
-	     _ -> return ()
+        case cmd of
+             "SERVER" -> server_ i m
+             "371" -> infoLine i m
+             "105" -> iSupport i m
+             "374" -> endOfInfo i m
+             "257" -> adminLine i m
+             "258" -> adminLine i m
+             "259" -> adminLine i m
+             "248" -> sharedStats i m
+             "215" -> authLine i m
+             _ -> return ()
 
 data Server = Server {
     srv_config :: [(String, String)],
@@ -71,17 +71,17 @@ startCheck srv m = do
 -- | Parse info line.
 infoLine (IRCLine (Just srv) (_:_:l:[])) m = do
     case l =~~ "^(\\w+) +(.+) \\[.*\\]" of
-	 Just (_::String,_::String,_::String,[var::String,val]) ->
-	     save m srv srv_config_add (var, (strip isSpace val))
-	 _ -> return ()
+         Just (_::String,_::String,_::String,[var::String,val]) ->
+             save m srv srv_config_add (var, (strip isSpace val))
+         _ -> return ()
 infoLine _ _ = return ()
 
 -- | iSupport.
 iSupport (IRCLine (Just srv) (_:_:l)) m =
     mapM_ one l
     where one s = case splitBy '=' s of
-		    [var, val] -> save m srv srv_config_add (var, val)
-		    _ -> return ()
+                    [var, val] -> save m srv srv_config_add (var, val)
+                    _ -> return ()
 iSupport _ _ = return ()
 
 -- | Admin.
@@ -107,65 +107,65 @@ endOfInfo (IRCLine (Just srv) _) m = do
     conf' <- io $ readIORef $ conf m
     let (info :: Maybe Server) = srv `Map.lookup` conf'
     case info of
-	 Nothing -> return ()
-	 Just xx -> runCheck srv xx
+         Nothing -> return ()
+         Just xx -> runCheck srv xx
     io $ conf m `modifyIORef` Map.delete srv
 endOfInfo _ _ = return ()
 
 -- | Save a piece of information using a given modifier.
 save m srv f v =
     io $ conf m `modifyIORef` Map.alter (\x ->
-	case x of
-	     Nothing -> Nothing
-	     Just sv -> Just $ f sv v
-	) srv
+        case x of
+             Nothing -> Nothing
+             Just sv -> Just $ f sv v
+        ) srv
 
 -- | Run all the checks.
 check srv =
     cShared ++ concatMap cAuth (srv_ilines srv) ++ concatMap cSetting (srv_config srv)
     where cShared = if not (srv_shared_ok srv)
-		       then [ ("Spatne nastaveny blok shared {}", sharedcrit) ]
-		       else []
-	  cSetting (var, val) =
-	      case lookup var config_settings of
-		   Just (val', crit) -> if val /= val'
-		       then [ ("Konf. volba " ++ var ++ " je spatne; ma byt: "
-			      ++ val'', crit) ]
-		       else []
-		       where val'' = if val' == "NONE" then "<prazdne>" else val'
-		   Nothing -> []
-	  cAuth l =
-	      case lookup l banned_ilines of
-		   Just crit -> [ ("ILine \"" ++ unwords l ++ "\" je zakazana", crit) ]
-		   Nothing -> []
+                       then [ ("Spatne nastaveny blok shared {}", sharedcrit) ]
+                       else []
+          cSetting (var, val) =
+              case lookup var config_settings of
+                   Just (val', crit) -> if val /= val'
+                       then [ ("Konf. volba " ++ var ++ " je spatne; ma byt: "
+                              ++ val'', crit) ]
+                       else []
+                       where val'' = if val' == "NONE" then "<prazdne>" else val'
+                   Nothing -> []
+          cAuth l =
+              case lookup l banned_ilines of
+                   Just crit -> [ ("ILine \"" ++ unwords l ++ "\" je zakazana", crit) ]
+                   Nothing -> []
 
 -- | Run the check and send email.
 runCheck name srv = case check srv of
     [] -> return ()
     xs -> do
-	critical <- or `fmap` mapM (io . crit . snd) xs
-	io $ mail "irc-jupe@tomi.nomi.cz" (srv_admins srv) ["irc@tomi.nomi.cz"] []
-	    ("Chyba v nastaveni IRC serveru " ++ name)
-	    ([
-		"Ahoj,",
-		"",
-		"bylo zjisteno, ze nastaveni serveru " ++ name ++
-		    " ma tyto nedostatky:", ""
-	     ] ++
-	     map (("    "++) . fst) xs ++
-	     [""] ++
-	     (if not critical then [] else ["Nektere z nich jsou zavazne, a proto byl server odpojen.",""]) ++
-	     ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"
-	     ,"Neridte se prosim jen temito pokyny, u nastaveni serveru premyslejte."
-	     ,"Nedari-li se vam to, najdete si za sebe nahradu."
-	     ,""
-	     ,"Dekujeme, sprava IRC site."]
-	    )
-	if critical && name /= remote
-	   then do
-	       squit name jupenick "critical configuration problem"
-	       jupe name jupenick "critical configuration problem"
-	   else return ()
+        critical <- or `fmap` mapM (io . crit . snd) xs
+        io $ mail "irc-jupe@tomi.nomi.cz" (srv_admins srv) ["irc@tomi.nomi.cz"] []
+            ("Chyba v nastaveni IRC serveru " ++ name)
+            ([
+                "Ahoj,",
+                "",
+                "bylo zjisteno, ze nastaveni serveru " ++ name ++
+                    " ma tyto nedostatky:", ""
+             ] ++
+             map (("    "++) . fst) xs ++
+             [""] ++
+             (if not critical then [] else ["Nektere z nich jsou zavazne, a proto byl server odpojen.",""]) ++
+             ["Informace o spravnem nastaveni jsou zde: http://irc.nomi.cz/ratboxsetup.html"
+             ,"Neridte se prosim jen temito pokyny, u nastaveni serveru premyslejte."
+             ,"Nedari-li se vam to, najdete si za sebe nahradu."
+             ,""
+             ,"Dekujeme, sprava IRC site."]
+            )
+        if critical && name /= remote
+           then do
+               squit name jupenick "critical configuration problem"
+               jupe name jupenick "critical configuration problem"
+           else return ()
 
 type Crit = (Bool, POSIXTime)
 
@@ -180,21 +180,21 @@ sharedcrit = (True, 1191147064)
 
 config_settings :: [(String, (String, Crit))]
 config_settings = [
-	("NICKLEN",			("20",		(True,	1191147064))),
-	("CHANNELLEN",			("50",		(True,	1191147064))),
-	("TOPICLEN",			("390",		(False,	0))),
-	("ts_max_delta",		("300",		(True,	1191147064))),
-	("network_name",		("CZFree",	(False,	0))),
-	("max_chans_per_user",		("50",		(True,	1191147064))),
-	("max_bans",			("42",		(True,	1191147064))),
-	("kline_reason",		("NONE",	(False,	0))),
-	("min_nonwildcard",		("2",		(False,	0))),
-	("min_nonwildcard_simple",	("2",		(False,	0)))
+        ("NICKLEN",                     ("20",          (True,  1191147064))),
+        ("CHANNELLEN",                  ("50",          (True,  1191147064))),
+        ("TOPICLEN",                    ("390",         (False, 0))),
+        ("ts_max_delta",                ("300",         (True,  1191147064))),
+        ("network_name",                ("CZFree",      (False, 0))),
+        ("max_chans_per_user",          ("50",          (True,  1191147064))),
+        ("max_bans",                    ("42",          (True,  1191147064))),
+        ("kline_reason",                ("NONE",        (False, 0))),
+        ("min_nonwildcard",             ("2",           (False, 0))),
+        ("min_nonwildcard_simple",      ("2",           (False, 0)))
     ]
 
 banned_ilines :: [([String], Crit)]
 banned_ilines =
-    [ (["irc.fi", "*", "*@*.fi", "6667", "users"],	(True,	1218633298))
-    , (["NOMATCH", "*", "*@0.0.0.0/0", "0", "opers"],	(True,	1218633298))
-    , (["NOMATCH", "*", "*@*", "0", "opers"],		(True,	1218633298))
+    [ (["irc.fi", "*", "*@*.fi", "6667", "users"],      (True,  1218633298))
+    , (["NOMATCH", "*", "*@0.0.0.0/0", "0", "opers"],   (True,  1218633298))
+    , (["NOMATCH", "*", "*@*", "0", "opers"],           (True,  1218633298))
     ]

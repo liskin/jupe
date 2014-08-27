@@ -13,17 +13,17 @@ import ModConfCheck
 
 main = bracket connect hClose $ \h -> do
     mods <-
-	sequence [
-	    -- modules go here:
-	    m newModBase,
-	    m newModJupe,
-	    m newModConfCheck
-	]
+        sequence [
+            -- modules go here:
+            m newModBase,
+            m newModJupe,
+            m newModConfCheck
+        ]
     JupeConsts { socket = h, modules = mods } `runJupe` do
-	allmodsJM mod_init
-	forever $ do
-	    line <- getline
-	    allmodsJM (mod_input line)
+        allmodsJM mod_init
+        forever $ do
+            line <- getline
+            allmodsJM (mod_input line)
 
 forever x = x >> forever x
 
