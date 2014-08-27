@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module ModConfCheck (newModConfCheck) where
 
 import JupeCore

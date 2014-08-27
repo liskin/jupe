@@ -1,2 +1,2 @@
 all:
-	ghc --make -fglasgow-exts jupe.hs
+	ghc --make -outputdir build jupe.hs

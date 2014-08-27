@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification, Rank2Types #-}
+
 module JupeCore (
     module JupeCore,
     IRCLine(..),
