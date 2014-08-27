@@ -168,34 +168,34 @@ runCheck name srv = case check srv of
                jupe name jupenick "critical configuration problem"
            else return ()
 
-type Crit = (Bool, POSIXTime)
+type Crit = Maybe POSIXTime
 
 crit :: Crit -> IO Bool
-crit (True, t) = do
+crit (Just t) = do
     now <- getPOSIXTime
     return $ now > t
-crit _ = return False
+crit Nothing = return False
 
 sharedcrit :: Crit
-sharedcrit = (True, 1191147064)
+sharedcrit = Just 1191147064
 
 config_settings :: [(String, (String, Crit))]
 config_settings = [
-        ("NICKLEN",                     ("20",          (True,  1191147064))),
-        ("CHANNELLEN",                  ("50",          (True,  1191147064))),
-        ("TOPICLEN",                    ("390",         (False, 0))),
-        ("ts_max_delta",                ("300",         (True,  1191147064))),
-        ("network_name",                ("CZFree",      (False, 0))),
-        ("max_chans_per_user",          ("50",          (True,  1191147064))),
-        ("max_bans",                    ("42",          (True,  1191147064))),
-        ("kline_reason",                ("NONE",        (False, 0))),
-        ("min_nonwildcard",             ("2",           (False, 0))),
-        ("min_nonwildcard_simple",      ("2",           (False, 0)))
+        ("NICKLEN",                     ("20",          (Just 1191147064))),
+        ("CHANNELLEN",                  ("50",          (Just 1191147064))),
+        ("TOPICLEN",                    ("390",         Nothing)),
+        ("ts_max_delta",                ("300",         (Just 1191147064))),
+        ("network_name",                ("CZFree",      Nothing)),
+        ("max_chans_per_user",          ("50",          (Just 1191147064))),
+        ("max_bans",                    ("42",          (Just 1191147064))),
+        ("kline_reason",                ("NONE",        Nothing)),
+        ("min_nonwildcard",             ("2",           Nothing)),
+        ("min_nonwildcard_simple",      ("2",           Nothing))
     ]
 
 banned_ilines :: [([String], Crit)]
 banned_ilines =
-    [ (["irc.fi", "*", "*@*.fi", "6667", "users"],      (True,  1218633298))
-    , (["NOMATCH", "*", "*@0.0.0.0/0", "0", "opers"],   (True,  1218633298))
-    , (["NOMATCH", "*", "*@*", "0", "opers"],           (True,  1218633298))
+    [ (["irc.fi", "*", "*@*.fi", "6667", "users"],      (Just 1218633298))
+    , (["NOMATCH", "*", "*@0.0.0.0/0", "0", "opers"],   (Just 1218633298))
+    , (["NOMATCH", "*", "*@*", "0", "opers"],           (Just 1218633298))
     ]
