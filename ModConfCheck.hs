@@ -32,7 +32,7 @@ instance Module ModConfCheck where
     mod_input i@(IRCLine _ (cmd:_)) m =
         case cmd of
              "SERVER" -> server_ i m
-             "SID" -> server_ i m
+             "SID" -> sid_ i m
              "371" -> infoLine i m
              "105" -> iSupport i m
              "374" -> endOfInfo i m
@@ -44,30 +44,35 @@ instance Module ModConfCheck where
              _ -> return ()
 
 data Server = Server {
+    srv_name   :: String,
     srv_config :: [(String, String)],
     srv_admins :: [String],
     srv_ilines :: [[String]],
     srv_shared_ok :: Bool
 } deriving Show
 
-newServer = Server [] [] [] False
+newServer name = Server name [] [] [] False
 srv_config_add y@(Server { srv_config = x }) z = y { srv_config = z : x }
 srv_admins_add y@(Server { srv_admins = x }) z = y { srv_admins = z : x }
 srv_ilines_add y@(Server { srv_ilines = x }) z = y { srv_ilines = z : x }
 srv_shared_ok_set y _ = y { srv_shared_ok = True }
 
 -- | Server.
-server_ (IRCLine _ (_:srv:_)) m = startCheck srv m
+server_ (IRCLine _ (_:srv:_)) m = startCheck srv srv m
 server_ _ _ = return ()
 
+-- | SID.
+sid_ (IRCLine _ (_:name:_:sid:_)) m = startCheck name sid m
+sid_ _ _ = return ()
+
 -- | Initiate check.
-startCheck srv m = do
-    putline $ IRCLine (Just jupenick) ["ADMIN", srv]
-    putline $ IRCLine (Just jupenick) ["VERSION", srv]
-    putline $ IRCLine (Just jupenick) ["STATS", "U", srv]
-    putline $ IRCLine (Just jupenick) ["STATS", "i", srv]
-    putline $ IRCLine (Just jupenick) ["INFO", srv]
-    io $ conf m `modifyIORef` Map.alter (const $ Just newServer) srv
+startCheck name sid m = do
+    putline $ IRCLine (Just jupenick) ["ADMIN", sid]
+    putline $ IRCLine (Just jupenick) ["VERSION", sid]
+    putline $ IRCLine (Just jupenick) ["STATS", "U", sid]
+    putline $ IRCLine (Just jupenick) ["STATS", "i", sid]
+    putline $ IRCLine (Just jupenick) ["INFO", sid]
+    io $ conf m `modifyIORef` Map.alter (const $ Just $ newServer name) sid
 
 -- | Parse info line.
 infoLine (IRCLine (Just srv) (_:_:l:[])) m = do
@@ -109,7 +114,7 @@ endOfInfo (IRCLine (Just srv) _) m = do
     let (info :: Maybe Server) = srv `Map.lookup` conf'
     case info of
          Nothing -> return ()
-         Just xx -> runCheck srv xx
+         Just xx -> runCheck xx
     io $ conf m `modifyIORef` Map.delete srv
 endOfInfo _ _ = return ()
 
@@ -141,9 +146,10 @@ check srv =
                    Nothing -> []
 
 -- | Run the check and send email.
-runCheck name srv = case check srv of
+runCheck srv = case check srv of
     [] -> return ()
     xs -> do
+        let name = srv_name srv
         critical <- or `fmap` mapM (io . crit . snd) xs
         io $ mail "irc-jupe@tomi.nomi.cz" (srv_admins srv) ["irc@tomi.nomi.cz"] []
             ("Chyba v nastaveni IRC serveru " ++ name)
