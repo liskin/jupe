@@ -2,7 +2,8 @@ module Main where
 
 import JupeCore
 import System.IO
-import Network
+import qualified Network.Simple.TCP as N
+import qualified Network.Socket as N
 import Control.Exception
 
 import Config (host, port)
@@ -28,9 +29,8 @@ main = bracket connect hClose $ \h -> do
 forever x = x >> forever x
 
 connect = do
-    h <- connectTo host (PortNumber (fromIntegral port))
-    hSetBuffering h NoBuffering
-    return h
+    (s, _a) <- N.connectSock host (show port)
+    N.socketToHandle s ReadWriteMode
 
 m :: (Module a) => IO a -> IO MOD
 m = (MOD `fmap`)

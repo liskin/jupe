@@ -1,4 +1,5 @@
-{-# LANGUAGE ExistentialQuantification, Rank2Types #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE Rank2Types #-}
 
 module JupeCore (
     module JupeCore,
@@ -6,7 +7,6 @@ module JupeCore (
     ) where
 
 import Control.Monad.Reader
-import Network
 import System.IO
 import IRC
 
@@ -49,7 +49,7 @@ runJupe = flip runReaderT
 
 -- Run a given action for all modules.
 allmodsJM :: (forall a. (Module a) => a -> JupeM b) -> JupeM ()
-allmodsJM = (asks modules >>=) . mapM_ . modap
+allmodsJM f = asks modules >>= mapM_ (modap f)
 
 -- Get one line.
 getline :: JupeM IRCLine
